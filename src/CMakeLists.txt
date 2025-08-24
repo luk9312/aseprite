@@ -1,5 +1,5 @@
 # Aseprite
-# Copyright (C) 2019-2024  Igara Studio S.A.
+# Copyright (C) 2019-2025  Igara Studio S.A.
 # Copyright (C) 2001-2018  David Capello
 
 ######################################################################
@@ -16,15 +16,12 @@ endif()
 if(MSVC)
   # As Skia is compiled with /GL flag (whole program optimization),
   # the linker prefer a /LTCG parameter to improve link times.
-  if(LAF_OS_BACKEND STREQUAL "skia")
+  if(LAF_BACKEND STREQUAL "skia")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
   endif()
-
-  add_definitions(-D_SCL_SECURE_NO_WARNINGS)
-  add_definitions(-wd4267) # disable warnings about signed/unsigned comparison
-  add_definitions(-wd4244) # disable warnings about possible loss of data
 else()
-  # disable warnings about signed/unsigned comparison
+  # Disable warnings about signed/unsigned comparison.
+  # TODO we should remove this (or move it to laf-base)
   add_definitions(-Wno-sign-compare)
 endif()
 
@@ -54,6 +51,7 @@ add_subdirectory(undo)
 
 add_subdirectory(cfg)
 add_subdirectory(doc)
+add_subdirectory(view)
 add_subdirectory(filters)
 add_subdirectory(fixmath)
 add_subdirectory(flic)
@@ -155,6 +153,12 @@ add_custom_command(
 list(APPEND out_data_files ${DATA_OUTPUT_DIR}/README.md)
 
 add_custom_command(
+  OUTPUT ${DATA_OUTPUT_DIR}/AUTHORS.md
+  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../AUTHORS.md ${DATA_OUTPUT_DIR}/AUTHORS.md
+  MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/../AUTHORS.md)
+list(APPEND out_data_files ${DATA_OUTPUT_DIR}/AUTHORS.md)
+
+add_custom_command(
   OUTPUT ${DATA_OUTPUT_DIR}/EULA.txt
   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../EULA.txt ${DATA_OUTPUT_DIR}/EULA.txt
   MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/../EULA.txt)
@@ -176,14 +180,14 @@ if(ENABLE_ASEPRITE_EXE)
 
   if(WIN32)
     set(main_resources
-      main/resources_win32.rc
-      main/settings.manifest)
+      main/win/resources_win32.rc
+      main/win/settings.manifest)
   endif()
 
   add_executable(${main_target}
     main/main.cpp
     ${main_resources})
-  if(ENABLE_UI)
+  if(LAF_BACKEND STREQUAL "skia")
     if(WIN32)
       set_target_properties(${main_target} PROPERTIES WIN32_EXECUTABLE true)
     endif()
@@ -192,9 +196,9 @@ if(ENABLE_ASEPRITE_EXE)
   target_link_libraries(${main_target} app-lib)
   add_dependencies(${main_target} copy_data)
 
-  if(LAF_OS_BACKEND_LINK_FLAGS)
+  if(LAF_BACKEND_LINK_FLAGS)
     set_target_properties(${main_target} PROPERTIES LINK_FLAGS
-      ${LAF_OS_BACKEND_LINK_FLAGS})
+      ${LAF_BACKEND_LINK_FLAGS})
   endif()
 
   install(TARGETS ${main_target}
@@ -211,6 +215,7 @@ if(ENABLE_TESTS)
   include(FindTests)
   find_tests(doc doc-lib)
   find_tests(doc/algorithm doc-lib)
+  find_tests(view view-lib)
   find_tests(render render-lib)
   find_tests(ui ui-lib)
   find_tests(app/cli app-lib)
@@ -225,4 +230,5 @@ if(ENABLE_BENCHMARKS)
   find_benchmarks(doc doc-lib)
   find_benchmarks(doc/algorithm doc-lib)
   find_benchmarks(render render-lib)
+  find_benchmarks(ui ui-lib)
 endif()

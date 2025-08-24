@@ -6,7 +6,7 @@
 // the End-User License Agreement for Aseprite.
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+  #include "config.h"
 #endif
 
 #include "app/commands/command.h"
@@ -37,25 +37,25 @@ private:
   Type m_type;
 };
 
-CancelCommand::CancelCommand()
-  : Command(CommandId::Cancel(), CmdUIOnlyFlag)
-  , m_type(NoOp)
+CancelCommand::CancelCommand() : Command(CommandId::Cancel(), CmdUIOnlyFlag), m_type(NoOp)
 {
 }
 
 void CancelCommand::onLoadParams(const Params& params)
 {
   std::string type = params.get("type");
-  if (type == "noop") m_type = NoOp;
-  else if (type == "all") m_type = All;
+  if (type == "noop")
+    m_type = NoOp;
+  else if (type == "all")
+    m_type = All;
   // TODO: add specific types for selection/ranges during scripting.
-  else m_type = All;
+  else
+    m_type = All;
 }
 
 void CancelCommand::onExecute(Context* context)
 {
   switch (m_type) {
-
     case NoOp:
       // Do nothing.
       break;
@@ -63,9 +63,8 @@ void CancelCommand::onExecute(Context* context)
     case All:
       // TODO should the ContextBar be a InputChainElement to intercept onCancel()?
       // Discard brush
-      {
-        Command* discardBrush = Commands::instance()->byId(
-          CommandId::DiscardBrush());
+      if (context->isUIAvailable()) {
+        Command* discardBrush = Commands::instance()->byId(CommandId::DiscardBrush());
         context->executeCommand(discardBrush);
       }
 

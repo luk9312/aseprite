@@ -61,6 +61,7 @@ add_library(doc-lib
   primitives.cpp
   remap.cpp
   render_plan.cpp
+  rgbmap_base.cpp
   rgbmap_rgb5a3.cpp
   selected_frames.cpp
   selected_layers.cpp
@@ -81,7 +82,8 @@ add_library(doc-lib
   tilesets.cpp
   user_data.cpp
   user_data_io.cpp
-  util.cpp)
+  util.cpp
+  uuid_io.cpp)
 
 target_link_libraries(doc-lib
   laf-gfx

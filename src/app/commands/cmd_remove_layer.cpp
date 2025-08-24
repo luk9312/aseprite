@@ -6,18 +6,18 @@
 // the End-User License Agreement for Aseprite.
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+  #include "config.h"
 #endif
 
 #include "app/app.h"
-#include "app/commands/command.h"
 #include "app/cmd/remove_tileset.h"
+#include "app/commands/command.h"
 #include "app/context_access.h"
 #include "app/doc_api.h"
 #include "app/i18n/strings.h"
 #include "app/modules/gui.h"
-#include "app/tx.h"
 #include "app/pref/preferences.h"
+#include "app/tx.h"
 #include "app/ui/optional_alert.h"
 #include "app/ui/status_bar.h"
 #include "doc/layer.h"
@@ -38,11 +38,9 @@ static bool deleting_all_layers(Context* ctx, Sprite* sprite, int topLevelLayers
 {
   const bool deletingAll = (topLevelLayersToDelete == sprite->root()->layersCount());
 
-#ifdef ENABLE_UI
   if (ctx->isUIAvailable() && deletingAll) {
     ui::Alert::show(Strings::alerts_cannot_delete_all_layers());
   }
-#endif
 
   return deletingAll;
 }
@@ -56,7 +54,9 @@ static bool deleting_all_layers(Context* ctx, Sprite* sprite, int topLevelLayers
 // - The user accepts continuing despite the warning.
 // - There is no UI available.
 static bool continue_deleting_unused_tilesets(
-  Context* ctx, Sprite* sprite, const LayerList layers,
+  Context* ctx,
+  Sprite* sprite,
+  const LayerList layers,
   std::set<tileset_index, std::greater<tileset_index>>& tsiToDelete)
 {
   std::vector<LayerTilemap*> tilemaps;
@@ -77,7 +77,6 @@ static bool continue_deleting_unused_tilesets(
     }
   }
 
-#ifdef ENABLE_UI
   // Just continue if UI is not available.
   if (!ctx->isUIAvailable())
     return true;
@@ -92,11 +91,9 @@ static bool continue_deleting_unused_tilesets(
     message = Strings::alerts_deleting_tilemaps_will_delete_tilesets(layerNames);
 
   return tsiToDelete.empty() ||
-         app::OptionalAlert::show(
-          Preferences::instance().tilemap.showDeleteUnusedTilesetAlert, 1, message) == 1;
-#else
-  return true;
-#endif
+         app::OptionalAlert::show(Preferences::instance().tilemap.showDeleteUnusedTilesetAlert,
+                                  1,
+                                  message) == 1;
 }
 
 class RemoveLayerCommand : public Command {
@@ -108,15 +105,13 @@ protected:
   void onExecute(Context* context) override;
 };
 
-RemoveLayerCommand::RemoveLayerCommand()
-  : Command(CommandId::RemoveLayer(), CmdRecordableFlag)
+RemoveLayerCommand::RemoveLayerCommand() : Command(CommandId::RemoveLayer(), CmdRecordableFlag)
 {
 }
 
 bool RemoveLayerCommand::onEnabled(Context* context)
 {
-  if (!context->checkFlags(ContextFlags::ActiveDocumentIsWritable |
-                           ContextFlags::HasActiveSprite |
+  if (!context->checkFlags(ContextFlags::ActiveDocumentIsWritable | ContextFlags::HasActiveSprite |
                            ContextFlags::HasActiveLayer))
     return false;
 
@@ -125,10 +120,10 @@ bool RemoveLayerCommand::onEnabled(Context* context)
   const Layer* layer = reader.layer();
 
   return sprite && layer &&
-    // We can remove all layers from non-root groups
-    ((layer->parent() != sprite->root()) ||
-     // Check that we are not removing the last layer in the sprite
-     (sprite->root()->layersCount() > 1));
+         // We can remove all layers from non-root groups
+         ((layer->parent() != sprite->root()) ||
+          // Check that we are not removing the last layer in the sprite
+          (sprite->root()->layersCount() > 1));
 }
 
 void RemoveLayerCommand::onExecute(Context* context)
@@ -146,10 +141,9 @@ void RemoveLayerCommand::onExecute(Context* context)
     // the std::greater Compare.
     std::set<tileset_index, std::greater<tileset_index>> tsiToDelete;
 
-    const Site* site = writer.site();
-    if (site->inTimeline() &&
-        !site->selectedLayers().empty()) {
-      SelectedLayers selLayers = site->selectedLayers();
+    const Site& site = writer.site();
+    if (site.inTimeline() && !site.selectedLayers().empty()) {
+      SelectedLayers selLayers = site.selectedLayers();
       selLayers.removeChildrenIfParentIsSelected();
 
       layer_t deletedTopLevelLayers = 0;
@@ -162,7 +156,10 @@ void RemoveLayerCommand::onExecute(Context* context)
         return;
       }
 
-      if (!continue_deleting_unused_tilesets(context, sprite, selLayers.toAllTilemaps(), tsiToDelete)) {
+      if (!continue_deleting_unused_tilesets(context,
+                                             sprite,
+                                             selLayers.toAllTilemaps(),
+                                             tsiToDelete)) {
         return;
       }
 
@@ -182,7 +179,8 @@ void RemoveLayerCommand::onExecute(Context* context)
         return;
       }
 
-      if (layer->isTilemap() && !continue_deleting_unused_tilesets(context, sprite, {layer}, tsiToDelete)) {
+      if (layer->isTilemap() &&
+          !continue_deleting_unused_tilesets(context, sprite, { layer }, tsiToDelete)) {
         return;
       }
 
@@ -199,21 +197,17 @@ void RemoveLayerCommand::onExecute(Context* context)
     tx.commit();
   }
 
-#ifdef ENABLE_UI
   if (context->isUIAvailable()) {
     update_screen_for_document(document);
 
     StatusBar::instance()->invalidate();
     if (!layerName.empty()) {
-      StatusBar::instance()->showTip(
-        1000, Strings::remove_layer_x_removed(layerName));
+      StatusBar::instance()->showTip(1000, Strings::remove_layer_x_removed(layerName));
     }
     else {
-      StatusBar::instance()->showTip(
-        1000, Strings::remove_layer_layers_removed());
+      StatusBar::instance()->showTip(1000, Strings::remove_layer_layers_removed());
     }
   }
-#endif
 }
 
 Command* CommandFactory::createRemoveLayerCommand()
